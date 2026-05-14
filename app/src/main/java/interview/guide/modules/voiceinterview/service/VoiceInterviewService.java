@@ -245,18 +245,43 @@ public class VoiceInterviewService {
             return;
         }
 
+        String normalizedUserText = VoiceInterviewMessageEntity.trimToNull(userText);
+        String normalizedAiText = VoiceInterviewMessageEntity.trimToNull(aiText);
+
+        boolean answerAttached = normalizedUserText != null
+            && fillLatestUnansweredQuestion(sessionIdLong, normalizedUserText);
+        if (normalizedAiText == null) {
+            return;
+        }
+
         VoiceInterviewMessageEntity message = VoiceInterviewMessageEntity.builder()
                 .sessionId(sessionIdLong)
                 .messageType("DIALOGUE")
                 .phase(session.getCurrentPhase())
-                .userRecognizedText(userText)
-                .aiGeneratedText(aiText)
+                .userRecognizedText(normalizedUserText != null && !answerAttached
+                    ? normalizedUserText
+                    : null)
+                .aiGeneratedText(normalizedAiText)
                 .sequenceNum(getNextSequenceNum(sessionIdLong))
                 .build();
 
         messageRepository.save(message);
         log.debug("Saved message for session: {}, phase: {}, sequence: {}",
                 sessionId, session.getCurrentPhase(), message.getSequenceNum());
+    }
+
+    private boolean fillLatestUnansweredQuestion(Long sessionId, String userText) {
+        return messageRepository
+            .findFirstBySessionIdAndUserRecognizedTextIsNullAndAiGeneratedTextIsNotNullOrderBySequenceNumDesc(
+                sessionId)
+            .map(message -> {
+                message.setUserRecognizedText(userText);
+                messageRepository.save(message);
+                log.debug("Filled answer for voice message: sessionId={}, sequence={}",
+                    sessionId, message.getSequenceNum());
+                return true;
+            })
+            .orElse(false);
     }
 
     /**
@@ -613,5 +638,39 @@ public class VoiceInterviewService {
             log.error("Invalid session ID format: {}", sessionId, e);
             return null;
         }
+    }
+
+    /**
+     * 清理超时的 IN_PROGRESS 会话和卡住的 PROCESSING 评估。
+     * 由 @Scheduled 在 WebSocketHandler 中定时触发。
+     */
+    @Transactional
+    public int cleanupStaleSessions() {
+        LocalDateTime staleThreshold = LocalDateTime.now().minusHours(2);
+
+        List<VoiceInterviewSessionEntity> staleSessions = sessionRepository
+            .findByStatusAndStartTimeBefore(VoiceInterviewSessionStatus.IN_PROGRESS, staleThreshold);
+
+        int cleaned = 0;
+        for (VoiceInterviewSessionEntity session : staleSessions) {
+            log.info("Cleaning up stale IN_PROGRESS session {}, started at {}",
+                session.getId(), session.getStartTime());
+            endSession(session);
+            cleaned++;
+        }
+
+        LocalDateTime evalStaleThreshold = LocalDateTime.now().minusMinutes(30);
+        List<VoiceInterviewSessionEntity> stuckEvals = sessionRepository
+            .findByEvaluateStatusAndUpdatedAtBefore(AsyncTaskStatus.PROCESSING, evalStaleThreshold);
+
+        for (VoiceInterviewSessionEntity session : stuckEvals) {
+            log.info("Resetting stuck PROCESSING evaluation for session {}", session.getId());
+            session.setEvaluateStatus(AsyncTaskStatus.FAILED);
+            session.setEvaluateError("评估超时，请重新触发");
+            sessionRepository.save(session);
+            cleaned++;
+        }
+
+        return cleaned;
     }
 }
