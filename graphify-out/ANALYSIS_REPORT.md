@@ -85,29 +85,29 @@
 ### 2.3 主要组件说明
 
 #### 控制器层
-- **Community 49**: 面试调度控制器 (InterviewScheduleController.java)
+- **Interview Schedule Controller (9 nodes)**: 面试调度控制器 (InterviewScheduleController.java)
   - InterviewScheduleController
   - InterviewScheduleController.parse()
   - InterviewScheduleController.create()
 
 #### 服务层 (核心模块)
-- **Community 0**: 语音面试WebSocket处理
+- **Voice Interview WebSocket (80 nodes)**: 语音面试WebSocket处理
   - VoiceInterviewWebSocketHandler
   - SessionState
   - OrderedTtsChunkEmitter
 
-- **Community 1**: LLM配置与加密
+- **LLM Config Service (74 nodes)**: LLM配置与加密
   - LlmProviderConfigService
   - ApiKeyEncryptionService
   - YamlTextEditor
 
-- **Community 2**: 语音面试服务与评估
+- **Interview Voice Stream (62 nodes)**: 语音面试服务与评估
   - VoiceInterviewService
   - VoiceInterviewMessageRepository
   - EvaluateStreamProducer
 
 #### 基础设施层
-- **Community 4**: Redis缓存与异步处理
+- **Redis Stream Service (53 nodes)**: Redis缓存与异步处理
   - RedisService
   - AbstractStreamConsumer
   - StreamMessageProcessor
@@ -165,7 +165,7 @@
 
 **LlmProviderConfigService** 连接了多个社区，是整个系统的LLM能力集成枢纽，为面试、知识库、语音等多个模块提供AI能力支持。
 
-**RedisService**（31 edges）连接了社区4、0、1、3、6、23等多个社区，是整个系统的缓存和消息通信枢纽，为各个模块提供分布式缓存和异步消息处理能力。
+**RedisService**（31 edges）连接了 Redis Stream Service、Voice Interview WebSocket、LLM Config Service、Interview Voice LLM、Interview Redis Resume、Stream Interview Voice 等多个社区，是整个系统的缓存和消息通信枢纽，为各个模块提供分布式缓存和异步消息处理能力。
 
 ---
 
@@ -204,26 +204,26 @@ AbstractStreamConsumer (抽象基类)
 
 | 社区ID | 名称 | 内聚度 | 节点数 | 说明 |
 |--------|------|--------|--------|------|
-| 65 | LLM配置层 | 0.40 | 4 | AdvisorConfig, LlmProviderProperties, ProviderConfig, SecurityConfig |
-| 70 | 知识库查询配置 | 0.40 | 4 | History, KnowledgeBaseQueryProperties, Rewrite, Search |
-| 58 | 面试技能属性 | 0.25 | 6 | CategoryDef, DisplayDef, InterviewSkillProperties, SkillDefinition |
-| 48 | 通用常量 | 0.22 | 4 | CommonConstants, InterviewDefaults, Pagination, StatusCode |
-| 30 | 语音配置 | 0.14 | 12+ | AliyunConfig, AsrConfig, AudioConfig, DurationConfig |
-| 6 | 面试会话缓存 | 0.11 | 5+ | CachedSession, InterviewSessionCache, InterviewSessionService |
-| 8 | 面试调度服务 | 0.09 | 4+ | InterviewScheduleRepository, InterviewScheduleService, ScheduleStatusUpdater |
-| 12 | 面试持久化 | 0.09 | 3+ | InterviewAnswerRepository, InterviewSessionRepository, InterviewPersistenceService |
-| 0 | 语音WebSocket | 0.07 | 5 | DisposableBean, OrderedTtsChunkEmitter, SessionState |
-| 1 | LLM配置服务 | 0.08 | 4 | LlmEmbeddingConfig, ApiKeyEncryptionService, LlmProviderConfigService |
+| 65 | LLM Config (5 nodes) | 0.40 | 5 | AdvisorConfig, LlmProviderProperties, ProviderConfig, SecurityConfig |
+| 70 | Knowledge (5 nodes) | 0.40 | 5 | History, KnowledgeBaseQueryProperties, Rewrite, Search |
+| 58 | Interview Skill LLM (8 nodes) | 0.25 | 8 | CategoryDef, DisplayDef, InterviewSkillProperties, SkillDefinition |
+| 48 | Interview (9 nodes) | 0.22 | 9 | CommonConstants, InterviewDefaults, Pagination, StatusCode |
+| 30 | Voice Interview Config (14 nodes) | 0.14 | 14 | AliyunConfig, AsrConfig, AudioConfig, DurationConfig |
+| 6 | Interview Redis Resume (44 nodes) | 0.11 | 44 | CachedSession, InterviewSessionCache, InterviewSessionService |
+| 8 | Interview Schedule LLM (34 nodes) | 0.09 | 34 | InterviewScheduleRepository, InterviewScheduleService, ScheduleStatusUpdater |
+| 12 | Interview Resume Repository (29 nodes) | 0.09 | 29 | InterviewAnswerRepository, InterviewSessionRepository, InterviewPersistenceService |
+| 0 | Voice Interview WebSocket (80 nodes) | 0.07 | 80 | DisposableBean, OrderedTtsChunkEmitter, SessionState |
+| 1 | LLM Config Service (74 nodes) | 0.08 | 74 | LlmEmbeddingConfig, ApiKeyEncryptionService, LlmProviderConfigService |
 
 ### 6.2 低内聚度社区（需关注）
 
-| 社区ID | 内聚度 | 问题描述 |
-|--------|--------|----------|
-| 2 | 0.06 | 语音面试服务社区内聚度较低，可能需要进一步模块化 |
-| 5 | 0.07 | 知识库相关服务混杂，建议拆分 |
-| 4 | 0.06 | Redis服务与流处理耦合度较高 |
-| 0 | 0.07 | WebSocket处理与TTS发射等可能需要解耦 |
-| 1 | 0.08 | LLM配置服务功能较多，可考虑拆分 |
+| 社区ID | 名称 | 内聚度 | 问题描述 |
+|--------|------|--------|----------|
+| 2 | Interview Voice Stream (62 nodes) | 0.06 | 语音面试服务社区内聚度较低，可能需要进一步模块化 |
+| 5 | Knowledge Service Interview (47 nodes) | 0.07 | 知识库相关服务混杂，建议拆分 |
+| 4 | Redis Stream Service (53 nodes) | 0.06 | Redis服务与流处理耦合度较高 |
+| 0 | Voice Interview WebSocket (80 nodes) | 0.07 | WebSocket处理与TTS发射等可能需要解耦 |
+| 1 | LLM Config Service (74 nodes) | 0.08 | LLM配置服务功能较多，可考虑拆分 |
 
 > 列出内聚度低于 0.1 的社区，说明问题原因和改进方向。
 
@@ -275,10 +275,10 @@ AbstractStreamConsumer (抽象基类)
 ### 8.2 具体改进方案
 
 **针对低内聚社区的拆分建议**：
-1. **Community 0**：将WebSocket处理与TTS发射、会话状态管理分离
-2. **Community 1**：将配置管理、API加密、YAML编辑拆分为独立服务
-3. **Community 2**：分离语音服务与消息存储、评估流程
-4. **Community 4**：Redis服务与流处理器解耦
+1. **Voice Interview WebSocket (80 nodes)**：将WebSocket处理与TTS发射、会话状态管理分离
+2. **LLM Config Service (74 nodes)**：将配置管理、API加密、YAML编辑拆分为独立服务
+3. **Interview Voice Stream (62 nodes)**：分离语音服务与消息存储、评估流程
+4. **Redis Stream Service (53 nodes)**：Redis服务与流处理器解耦
 
 ---
 

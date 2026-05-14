@@ -22,3 +22,7 @@ GEMINI.md
 
 # Playwright MCP
 .playwright-mcp/
+
+# Temporary analysis scripts
+analyze_communities.py
+update_html.py
