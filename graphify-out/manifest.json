@@ -1,0 +1,12 @@
+{
+  "files": [
+    {
+      "path": "app/src/main/java/interview/guide/App.java",
+      "type": "code",
+      "language": "Java"
+    }
+  ],
+  "total_files": 173,
+  "analysis_date": "2026-05-14",
+  "tool": "Graphify"
+}
